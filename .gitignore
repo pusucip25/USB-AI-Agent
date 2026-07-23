@@ -1,0 +1,13 @@
+# Heavy files - auto-downloaded by install scripts
+Shared/python/
+Shared/bin/
+Shared/models/*.gguf
+Shared/vendor/
+Shared/agent_data/
+Shared/chat_data/
+Shared/logs/
+Shared/.ollama-runtime/
+
+# OS
+.DS_Store
+Thumbs.db
