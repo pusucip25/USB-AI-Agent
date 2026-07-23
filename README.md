@@ -108,11 +108,23 @@ USB-AI-Agent/
 - Chat history saves **only to your USB drive**
 - Works on **Tails** and other privacy-focused Linux distros
 
+## 📱 Android Apps
+
+This repo also includes standalone Android applications built with Capacitor + React:
+
+| App | File | Description |
+|-----|------|-------------|
+| 🛸 **Blu** | `android-apks/Blu-v1.0.apk` | AI talking friend — your personal AI companion |
+| 🤖 **ZENO** | `android-apks/ZENO-v1.3-fix.apk` | AI friend v1.3 — improved AI companion with fixes |
+| ✈️ **AI Flight Search** | `android-apks/AI-Flight-Search.apk` | AI-powered flight search app |
+
+All apps are Capacitor-based (React + TypeScript) and can be side-loaded on any Android device.
+
 ## 🙏 Credits
 
-Built on top of [USB-Uncensored-LLM](https://github.com/techjarves/USB-Uncensored-LLM) by Tech Jarves.  
-OSINT tools: [Holehe](https://github.com/megadose/holehe), [Maigret](https://github.com/soxoj/maigret), [Agent Reach](https://github.com/Panniantong/Agent-Reach).
+Built on top of [USB-Uncensored-LLM](https://github.com/techjarves/USB-Uncensored-LLM) by Tech Jarves.
 
+OSINT tools: [Holehe](https://github.com/megadose/holehe), [Maigret](https://github.com/soxoj/maigret), [Agent Reach](https://github.com/Panniantong/Agent-Reach).
 ## ⚖️ License
 
 MIT — same as the original project.
