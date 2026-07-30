@@ -125,6 +125,15 @@ All apps are Capacitor-based (React + TypeScript) and can be side-loaded on any 
 Built on top of [USB-Uncensored-LLM](https://github.com/techjarves/USB-Uncensored-LLM) by Tech Jarves.
 
 OSINT tools: [Holehe](https://github.com/megadose/holehe), [Maigret](https://github.com/soxoj/maigret), [Agent Reach](https://github.com/Panniantong/Agent-Reach).
+
+## 🔗 More from Pusu
+
+| Project | Description |
+|---|---|
+| [🛡️ Pusu AdBlocker](https://github.com/pusucip25/pusu-adblocker) | Chrome MV3 ad blocker — 35,000+ rules, zero tracking |
+| [🌐 AI-Flight-Search](https://github.com/pusucip25/AI-Flight-Search) | AI-powered flight search engine |
+| [💡 ZENO](https://github.com/pusucip25/ZENO) | AI project — details coming soon |
+
 ## ⚖️ License
 
 MIT — same as the original project.
