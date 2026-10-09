@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USB AI Agent — Fast Chat</title>
+<style>
+  :root {
+    --bg:#0b0e14; --panel:#11151d; --card:#161b22; --border:#232a35;
+    --text:#c9d1d9; --dim:#7d8590; --accent:#3fb950; --accent2:#58a6ff;
+    --user:#1f6feb; --bot:#21262d;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; height:100vh; display:flex; background:var(--bg); color:var(--text);
+    font:14px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  /* ── sidebar ── */
+  aside {
+    width:250px; flex:0 0 250px; background:var(--panel);
+    border-right:1px solid var(--border); display:flex; flex-direction:column;
+  }
+  aside h1 { font-size:15px; margin:0; padding:14px 16px; border-bottom:1px solid var(--border); }
+  aside h1 span { color:var(--accent); }
+  #chatList { flex:1; overflow-y:auto; padding:8px; }
+  .chatItem {
+    padding:8px 10px; border-radius:7px; cursor:pointer; display:flex;
+    justify-content:space-between; gap:8px; color:var(--dim); font-size:13px;
+  }
+  .chatItem:hover { background:var(--card); color:var(--text); }
+  .chatItem.active { background:var(--card); color:var(--text); }
+  .chatItem b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+  .chatItem button {
+    background:none; border:0; color:var(--dim); cursor:pointer; padding:0 2px; font-size:13px;
+  }
+  .chatItem button:hover { color:#f85149; }
+  aside .foot { padding:10px; border-top:1px solid var(--border); display:flex; gap:6px; }
+  /* ── main ── */
+  main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  header {
+    display:flex; align-items:center; gap:10px; padding:10px 16px;
+    border-bottom:1px solid var(--border); background:var(--panel);
+  }
+  select, input, textarea, button { font-family:inherit; font-size:13px; }
+  select, input[type=text], textarea {
+    background:var(--card); color:var(--text); border:1px solid var(--border);
+    border-radius:7px; padding:7px 10px; outline:none;
+  }
+  select:focus, input:focus, textarea:focus { border-color:var(--accent2); }
+  #stats { margin-left:auto; color:var(--dim); font-size:12px; white-space:nowrap; }
+  #messages { flex:1; overflow-y:auto; padding:18px 16px; }
+  .msg { max-width:820px; margin:0 auto 16px; display:flex; gap:11px; }
+  .msg .who {
+    width:30px; height:30px; flex:0 0 30px; border-radius:7px; display:grid;
+    place-items:center; font-size:15px;
+  }
+  .msg.user .who { background:var(--user); }
+  .msg.bot  .who { background:var(--bot); }
+  .msg .body { flex:1; min-width:0; }
+  .msg .role { font-size:11px; color:var(--dim); margin-bottom:3px; text-transform:uppercase; letter-spacing:.5px; }
+  .msg .text { white-space:pre-wrap; word-wrap:break-word; }
+  .msg .text code {
+    background:#0d1117; border:1px solid var(--border); border-radius:4px;
+    padding:1px 5px; font-family:ui-monospace,monospace; font-size:12.5px;
+  }
+  .msg .text pre {
+    background:#0d1117; border:1px solid var(--border); border-radius:8px;
+    padding:11px 13px; overflow-x:auto; font-family:ui-monospace,monospace; font-size:12.5px;
+  }
+  .msg .text ul, .msg .text ol { margin:6px 0 10px; padding-left:24px; }
+  .msg .text li { margin:3px 0; }
+  .cursor::after { content:"▋"; color:var(--accent); animation:blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+  .empty { text-align:center; color:var(--dim); margin-top:14vh; }
+  .empty h2 { color:var(--text); font-weight:500; }
+  /* ── composer ── */
+  footer { border-top:1px solid var(--border); background:var(--panel); padding:12px 16px; }
+  .composer { max-width:820px; margin:0 auto; display:flex; gap:9px; align-items:flex-end; }
+  textarea { flex:1; resize:none; max-height:180px; min-height:42px; line-height:1.5; }
+  .send {
+    background:var(--accent); color:#04140a; border:0; border-radius:7px;
+    padding:10px 18px; font-weight:600; cursor:pointer;
+  }
+  .send:disabled { opacity:.45; cursor:not-allowed; }
+  /* ── modal ── */
+  .modal {
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
+    place-items:center; z-index:20;
+  }
+  .modal.open { display:grid; }
+  .modal .box {
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    width:min(560px,92vw); padding:20px;
+  }
+  .modal h3 { margin:0 0 14px; font-size:15px; font-weight:500; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12px; color:var(--dim); margin-bottom:5px; }
+  .field textarea, .field input { width:100%; }
+  .row { display:flex; gap:10px; }
+  .row .field { flex:1; }
+  .actions { display:flex; justify-content:flex-end; gap:8px; margin-top:6px; }
+  .btn {
+    background:var(--card); color:var(--text); border:1px solid var(--border);
+    border-radius:7px; padding:8px 15px; cursor:pointer;
+  }
+  .btn.primary { background:var(--accent); color:#04140a; border-color:transparent; font-weight:600; }
+  .status { font-size:12px; color:var(--dim); }
+  .status.err { color:#f85149; }
+</style>
+</head>
+<body>
+
+<aside>
+  <h1>🔌 USB <span>AI Agent</span></h1>
+  <div id="chatList"></div>
+  <div class="foot">
+    <button class="btn" id="newChat" style="flex:1">＋ Conversație nouă</button>
+    <button class="btn" id="saveChat">💾</button>
+  </div>
+</aside>
+
+<main>
+  <header>
+    <label for="model" style="color:var(--dim);font-size:12px">Model</label>
+    <select id="model" style="min-width:190px"></select>
+    <span class="status" id="status"></span>
+    <div id="stats"></div>
+    <button class="btn" id="openSettings">⚙️</button>
+  </header>
+
+  <div id="messages"></div>
+
+  <footer>
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Scrie un mesaj…  (Enter trimite, Shift+Enter linie nouă)"></textarea>
+      <button class="send" id="send">Trimite</button>
+      <button class="btn" id="stop" style="display:none">⏹</button>
+    </div>
+  </footer>
+</main>
+
+<div class="modal" id="settingsModal">
+  <div class="box">
+    <h3>⚙️ Setări</h3>
+    <div class="field">
+      <label for="sysPrompt">System prompt global</label>
+      <textarea id="sysPrompt" rows="4" placeholder="Ex: Răspunde scurt și la obiect."></textarea>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="temp">Temperature <span id="tempVal">0.7</span></label>
+        <input type="range" id="temp" min="0" max="2" step="0.1" value="0.7" style="width:100%">
+      </div>
+      <div class="field">
+        <label for="logMode">Logare server</label>
+        <select id="logMode" style="width:100%">
+          <option value="errors_only">doar erori</option>
+          <option value="all">tot</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="closeSettings">Închide</button>
+      <button class="btn primary" id="saveSettings">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ── state ────────────────────────────────────────────────────────
+let messages = [];          // [{role, content}]
+let settings = { globalSystemPrompt:"", temperature:0.7, logMode:"errors_only" };
+let savedChats = [];        // [{id, title, messages}]
+let activeChatId = null;
+let controller = null;      // AbortController for streaming
+let busy = false;
+
+const $ = (id) => document.getElementById(id);
+const el = {
+  model:$("model"), status:$("status"), stats:$("stats"), messages:$("messages"),
+  input:$("input"), send:$("send"), stop:$("stop"), chatList:$("chatList"),
+  modal:$("settingsModal"), sysPrompt:$("sysPrompt"), temp:$("temp"),
+  tempVal:$("tempVal"), logMode:$("logMode"),
+};
+
+// ── helpers ──────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => (
+    {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+  ));
+}
+
+// minimal, safe markdown: code fences, inline code, bold, lists
+function renderProse(chunk) {
+  const lines = escapeHtml(chunk).split("\n");
+  const out = [];
+  let list = null;
+  const closeList = () => { if (list) { out.push("</" + list + ">"); list = null; } };
+  for (const raw of lines) {
+    const line = raw
+      .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+    const ul = line.match(/^\s*[*\-]\s+(.*)$/);
+    const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (ul) {
+      if (list !== "ul") { closeList(); out.push("<ul>"); list = "ul"; }
+      out.push("<li>" + ul[1] + "</li>");
+    } else if (ol) {
+      if (list !== "ol") { closeList(); out.push("<ol>"); list = "ol"; }
+      out.push("<li>" + ol[1] + "</li>");
+    } else {
+      closeList();
+      out.push(line);
+    }
+  }
+  closeList();
+  return out.join("\n");
+}
+
+function render(text) {
+  const blocks = text.split(/```/);
+  return blocks.map((chunk, i) => {
+    if (i % 2 === 1) {
+      const body = chunk.replace(/^[a-zA-Z0-9]*\n/, "");
+      return "<pre>" + escapeHtml(body) + "</pre>";
+    }
+    return renderProse(chunk);
+  }).join("");
+}
+
+function setStatus(msg, isErr) {
+  el.status.textContent = msg || "";
+  el.status.className = "status" + (isErr ? " err" : "");
+}
+
+function toastless(title) {
+  return (title || "Conversație").slice(0, 42);
+}
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(path + " → HTTP " + r.status);
+  return r;
+}
+
+// ── rendering ────────────────────────────────────────────────────
+function drawMessages() {
+  if (!messages.length) {
+    el.messages.innerHTML =
+      '<div class="empty"><h2>🤖 Cu ce te pot ajuta?</h2>' +
+      "<p>Agentul rulează local, prin Ollama. Nimic nu pleacă de pe dispozitiv.</p></div>";
+    return;
+  }
+  el.messages.innerHTML = messages.map((m) => {
+    const isUser = m.role === "user";
+    const who = isUser ? "👤" : "🤖";
+    const label = isUser ? "Tu" : "Agent";
+    return '<div class="msg ' + (isUser ? "user" : "bot") + '">' +
+      '<div class="who">' + who + "</div>" +
+      '<div class="body"><div class="role">' + label + "</div>" +
+      '<div class="text">' + render(m.content) + "</div></div></div>";
+  }).join("");
+  el.messages.scrollTop = el.messages.scrollHeight;
+}
+
+function appendStreamingBubble() {
+  const wrap = document.createElement("div");
+  wrap.className = "msg bot";
+  wrap.id = "streaming";
+  wrap.innerHTML = '<div class="who">🤖</div><div class="body">' +
+    '<div class="role">Agent</div><div class="text cursor"></div></div>';
+  el.messages.append(wrap);
+  el.messages.scrollTop = el.messages.scrollHeight;
+  return wrap.querySelector(".text");
+}
+
+// ── models ───────────────────────────────────────────────────────
+async function loadModels() {
+  try {
+    const r = await api("/ollama/api/tags");
+    const data = await r.json();
+    const models = (data.models || []).map((m) => m.name).filter(Boolean);
+    if (!models.length) {
+      el.model.innerHTML = '<option value="">(niciun model)</option>';
+      setStatus("Niciun model găsit — rulează întâi install.sh", true);
+      return;
+    }
+    el.model.innerHTML = models.map((m) =>
+      '<option value="' + escapeHtml(m) + '">' + escapeHtml(m) + "</option>").join("");
+    setStatus(models.length + " modele");
+  } catch (e) {
+    el.model.innerHTML = '<option value="">(indisponibil)</option>';
+    setStatus("Ollama nu răspunde", true);
+  }
+}
+
+// ── stats ────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await api("/api/stats");
+    const s = await r.json();
+    el.stats.textContent =
+      "CPU " + (s.cpu_percent ?? "–") + "%  ·  RAM " + (s.ram_percent ?? "–") + "%";
+  } catch { /* stats are cosmetic */ }
+}
+
+// ── settings ─────────────────────────────────────────────────────
+async function loadSettings() {
+  try {
+    const r = await api("/api/settings");
+    settings = Object.assign(settings, await r.json());
+  } catch { /* keep defaults */ }
+  el.sysPrompt.value = settings.globalSystemPrompt || "";
+  el.temp.value = settings.temperature ?? 0.7;
+  el.tempVal.textContent = el.temp.value;
+  el.logMode.value = settings.logMode === "all" ? "all" : "errors_only";
+}
+
+async function saveSettings() {
+  const payload = {
+    globalSystemPrompt: el.sysPrompt.value,
+    temperature: parseFloat(el.temp.value),
+    logMode: el.logMode.value,
+  };
+  try {
+    await api("/api/settings", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload),
+    });
+    settings = Object.assign(settings, payload);
+    el.modal.classList.remove("open");
+    setStatus("Setări salvate");
+    setTimeout(() => setStatus(""), 1800);
+  } catch (e) {
+    setStatus("Nu am putut salva setările", true);
+  }
+}
+
+// ── saved chats ──────────────────────────────────────────────────
+async function loadChats() {
+  try {
+    const r = await api("/api/chats");
+    const data = await r.json();
+    savedChats = Array.isArray(data) ? data : [];
+  } catch { savedChats = []; }
+  drawChatList();
+}
+
+function drawChatList() {
+  if (!savedChats.length) {
+    el.chatList.innerHTML = '<div style="color:var(--dim);font-size:12.5px;padding:8px 10px">' +
+      "Nicio conversație salvată.</div>";
+    return;
+  }
+  el.chatList.innerHTML = savedChats.map((c, i) =>
+    '<div class="chatItem' + (c.id === activeChatId ? " active" : "") + '" data-i="' + i + '">' +
+    "<b>" + escapeHtml(toastless(c.title)) + "</b>" +
+    '<button data-del="' + i + '" title="Șterge">✕</button></div>').join("");
+}
+
+el.chatList.addEventListener("click", (e) => {
+  const del = e.target.closest("[data-del]");
+  if (del) {
+    savedChats.splice(+del.dataset.del, 1);
+    drawChatList();
+    persistChats();
+    return;
+  }
+  const item = e.target.closest(".chatItem");
+  if (!item) return;
+  const c = savedChats[+item.dataset.i];
+  if (!c) return;
+  activeChatId = c.id;
+  messages = Array.isArray(c.messages) ? c.messages.slice() : [];
+  drawMessages();
+  drawChatList();
+});
+
+async function persistChats() {
+  try {
+    await api("/api/chats", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(savedChats),
+    });
+  } catch { setStatus("Salvarea conversațiilor a eșuat", true); }
+}
+
+$("saveChat").addEventListener("click", async () => {
+  if (!messages.length) { setStatus("Nimic de salvat", true); return; }
+  const first = messages.find((m) => m.role === "user");
+  const entry = {
+    id: activeChatId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)),
+    title: first ? first.content : "Conversație",
+    messages: messages.slice(),
+  };
+  const i = savedChats.findIndex((c) => c.id === entry.id);
+  if (i >= 0) savedChats[i] = entry; else savedChats.unshift(entry);
+  activeChatId = entry.id;
+  drawChatList();
+  await persistChats();
+  setStatus("Conversație salvată");
+  setTimeout(() => setStatus(""), 1800);
+});
+
+$("newChat").addEventListener("click", () => {
+  messages = []; activeChatId = null; drawMessages(); drawChatList();
+  el.input.focus();
+});
+
+// ── sending ──────────────────────────────────────────────────────
+function buildPayload() {
+  const out = [];
+  if (settings.globalSystemPrompt && settings.globalSystemPrompt.trim()) {
+    out.push({ role:"system", content: settings.globalSystemPrompt.trim() });
+  }
+  return out.concat(messages);
+}
+
+async function send() {
+  const text = el.input.value.trim();
+  if (!text || busy) return;
+  const model = el.model.value;
+  if (!model) { setStatus("Selectează un model", true); return; }
+
+  messages.push({ role:"user", content:text });
+  el.input.value = ""; el.input.style.height = "auto";
+  drawMessages();
+
+  busy = true;
+  el.send.disabled = true;
+  el.stop.style.display = "";
+  setStatus("Generez…");
+  const bubble = appendStreamingBubble();
+  let answer = "";
+  controller = new AbortController();
+
+  try {
+    const r = await fetch("/ollama/api/chat", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      signal: controller.signal,
+      body: JSON.stringify({
+        model, messages: buildPayload(), stream:true,
+        options:{ temperature: parseFloat(el.temp.value) || 0.7 },
+      }),
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream:true });
+      const lines = buf.split("\n");
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let obj;
+        try { obj = JSON.parse(line); } catch { continue; }
+        const piece = obj.message && obj.message.content;
+        if (piece) {
+          answer += piece;
+          bubble.innerHTML = render(answer) + '<span class="cursor"></span>';
+          el.messages.scrollTop = el.messages.scrollHeight;
+        }
+        if (obj.error) { answer += "\n[Eroare: " + obj.error + "]"; }
+      }
+    }
+    bubble.innerHTML = render(answer || "(răspuns gol)");
+    messages.push({ role:"assistant", content: answer });
+    setStatus("");
+  } catch (e) {
+    if (e.name === "AbortError") {
+      bubble.innerHTML = render(answer + "\n\n_[oprit]_");
+      if (answer) messages.push({ role:"assistant", content: answer });
+      setStatus("Oprit");
+    } else {
+      bubble.innerHTML = '<span style="color:#f85149">Eroare: ' + escapeHtml(e.message) + "</span>";
+      messages.pop();          // drop the user turn so it can be retried
+      setStatus("Cererea a eșuat", true);
+    }
+  } finally {
+    busy = false;
+    el.send.disabled = false;
+    el.stop.style.display = "none";
+    controller = null;
+    el.input.focus();
+  }
+}
+
+el.send.addEventListener("click", send);
+el.stop.addEventListener("click", () => controller && controller.abort());
+el.input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+el.input.addEventListener("input", () => {
+  el.input.style.height = "auto";
+  el.input.style.height = Math.min(el.input.scrollHeight, 180) + "px";
+});
+
+// ── modal wiring ─────────────────────────────────────────────────
+$("openSettings").addEventListener("click", () => el.modal.classList.add("open"));
+$("closeSettings").addEventListener("click", () => el.modal.classList.remove("open"));
+$("saveSettings").addEventListener("click", saveSettings);
+el.modal.addEventListener("click", (e) => {
+  if (e.target === el.modal) el.modal.classList.remove("open");
+});
+el.temp.addEventListener("input", () => { el.tempVal.textContent = el.temp.value; });
+
+// ── boot ─────────────────────────────────────────────────────────
+(async function init() {
+  await loadSettings();
+  await loadModels();
+  await loadChats();
+  loadStats();
+  setInterval(loadStats, 5000);
+  drawMessages();
+  el.input.focus();
+})();
+</script>
+</body>
+</html>

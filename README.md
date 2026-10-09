@@ -2,6 +2,8 @@
 
 > Plug in. Run one script. Get a fully autonomous AI agent with 13 tools, deep search, OSINT, and persistent memory — all from a portable USB/SSD. Zero install, zero traces.
 
+![USB AI Agent — startup banner with a live Ollama connection](screenshot.png)
+
 ## 🔥 What Makes This Different
 
 The original [USB-Uncensored-LLM](https://github.com/techjarves/USB-Uncensored-LLM) (now archived) was a great portable chat. **This takes it further** — it's not just a chat, it's an **agent** that can actually DO things.
@@ -39,6 +41,10 @@ bash Linux/install.sh
 # Every time: launch the agent
 bash Linux/start-agent.sh
 ```
+
+A local web chat UI ships alongside the CLI (`Linux/start.sh` / `Windows/start-fast-chat.bat`) — no cloud, no account:
+
+![USB AI Agent — local web chat UI](chat-ui.png)
 
 ## 🛠️ Available Tools
 
@@ -94,6 +100,7 @@ USB-AI-Agent/
 ├── Shared/
 │   ├── agent.py             # 🆕 The autonomous agent (13 tools)
 │   ├── chat_server.py       # Web chat server
+│   ├── FastChatUI.html      # The web chat interface it serves
 │   ├── python/              # Auto-downloaded portable Python
 │   ├── bin/                 # Portable Ollama engine
 │   └── models/              # GGUF model files
