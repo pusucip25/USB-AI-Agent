@@ -26,12 +26,20 @@ The original [USB-Uncensored-LLM](https://github.com/techjarves/USB-Uncensored-L
 
 ### Windows
 ```batch
-# First time: install engine + models
+# First time: install engine + models (interactive menu)
 Windows\install.bat
+
+# Unattended variants
+Windows\install.bat -Models 1 -Yes     # engine + Gemma 2B only, no prompts
+Windows\install.bat -Models 1,3        # two models
+Windows\install.bat -SkipModels        # engine + Python only, models later
 
 # Every time: launch the agent
 Windows\start-agent.bat
 ```
+
+`install.bat` calls `Windows\install-core.ps1` (same folder) — that script does all the
+work: portable Python, portable Ollama engine, GGUF downloads, Modelfiles, import.
 
 ### Linux (including Tails)
 ```bash
@@ -90,7 +98,8 @@ Models are downloaded once and work on any OS without re-downloading.
 ```
 USB-AI-Agent/
 ├── Windows/
-│   ├── install.bat          # Downloads Ollama + models
+│   ├── install.bat          # Entry point: downloads Python + Ollama + models
+│   ├── install-core.ps1     # The actual installer (called by install.bat)
 │   ├── start-agent.bat      # 🆕 Launches the autonomous agent
 │   └── start-fast-chat.bat  # Original web chat UI
 ├── Linux/
@@ -101,9 +110,11 @@ USB-AI-Agent/
 │   ├── agent.py             # 🆕 The autonomous agent (13 tools)
 │   ├── chat_server.py       # Web chat server
 │   ├── FastChatUI.html      # The web chat interface it serves
+│   ├── scripts/             # Shared model catalog + UI asset downloader
 │   ├── python/              # Auto-downloaded portable Python
 │   ├── bin/                 # Portable Ollama engine
-│   └── models/              # GGUF model files
+│   ├── logs/                # Install logs
+│   └── models/              # GGUF model files + Modelfiles
 └── .gitignore
 ```
 
@@ -126,6 +137,19 @@ This repo also includes standalone Android applications built with Capacitor + R
 | ✈️ **AI Flight Search** | `android-apks/AI-Flight-Search.apk` | AI-powered flight search app |
 
 All apps are Capacitor-based (React + TypeScript) and can be side-loaded on any Android device.
+
+## 🧰 Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| `install.bat` says **install-core.ps1 is missing** | Fixed in this repo — that file used to be absent, so the Windows installer could not run at all. Update your copy of `Windows\` (or re-clone) and run `install.bat` again. It is not your antivirus. |
+| A download stops halfway | Just run `install.bat` again. Partial files resume (`curl -C -`) and finished ones are skipped. |
+| `start-agent.bat` says **Ollama Engine Not Found** | The engine step did not complete. Re-run `install.bat` (it retries only what failed). |
+| Import fails during setup | See the log written to `Shared\logs\install-<timestamp>.log`, then re-run `install.bat`. |
+| PowerShell blocks the script | `install.bat` already passes `-ExecutionPolicy Bypass`; run it from `cmd` with `Windows\install.bat -SkipModels` to isolate the failing step. |
+
+Requirements on the host PC: Windows 10/11 with `curl.exe` (built in since 1803) and
+about 4 GB free beyond the models (portable Python ~11 MB, engine ~2 GB after extraction).
 
 ## 🙏 Credits
 
