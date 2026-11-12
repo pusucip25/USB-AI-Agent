@@ -564,11 +564,20 @@ function Import-Models {
             if (-not (Test-Path (Join-Path $ModelsDir $mf))) { Write-Warn2 "Skipping $($m.Name) - config missing."; continue }
 
             Write-Host "      Importing $($m.Name) ..." -ForegroundColor Yellow
-            $out = & $OLLAMA_EXE create $m.Local -f $mf 2>&1
-            if ($LASTEXITCODE -eq 0) {
+            # ollama writes its progress to stderr; keep EAP=Continue so that
+            # output is not turned into a terminating NativeCommandError.
+            $prevEAP = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            try {
+                $out = & $OLLAMA_EXE create $m.Local -f $mf 2>&1
+                $rc = $LASTEXITCODE
+            } finally {
+                $ErrorActionPreference = $prevEAP
+            }
+            if ($rc -eq 0) {
                 Write-Ok "$($m.Name) imported as '$($m.Local)'"
             } else {
-                Write-Err "Import failed for $($m.Name) (exit $LASTEXITCODE)"
+                Write-Err "Import failed for $($m.Name) (exit $rc)"
                 $out | Select-Object -Last 5 | ForEach-Object { Write-Info $_ }
                 $failed += "Import: $($m.Name)"
             }

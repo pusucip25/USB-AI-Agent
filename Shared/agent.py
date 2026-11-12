@@ -32,6 +32,12 @@ AGENT_DIR = SCRIPT_DIR / "agent_data"
 MEMORY_FILE = AGENT_DIR / "memory.json"
 CONFIG_FILE = AGENT_DIR / "config.json"
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+# start-agent.bat/.sh export OLLAMA_HOST as "127.0.0.1:11434" (that is the form
+# the ollama CLI wants). urllib needs a scheme, so normalise it here instead of
+# failing with "unknown url type: 127.0.0.1".
+if "://" not in OLLAMA_HOST:
+    OLLAMA_HOST = "http://" + OLLAMA_HOST
+OLLAMA_HOST = OLLAMA_HOST.rstrip("/")
 DEFAULT_MODEL = "qwen3.5:9b"  # fallback, se rescrie din config
 
 # ═══════════════════════════════════════════════════════════════════════
