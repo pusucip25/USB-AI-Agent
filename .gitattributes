@@ -1,0 +1,13 @@
+# Keep line endings correct on every OS.
+#
+# Windows batch files MUST be CRLF: cmd.exe misparses LF-only files
+# (labels, goto, parenthesised blocks). Shell and Python scripts must be
+# LF, otherwise Linux refuses them with "bad interpreter: /bin/bash^M".
+* text=auto
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.sh  text eol=lf
+*.py  text eol=lf
