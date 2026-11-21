@@ -40,7 +40,16 @@ $ProgressPreference = 'SilentlyContinue'
 # ----------------------------------------------------------------
 # Paths
 # ----------------------------------------------------------------
-$ScriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
+# The script's own path is empty when it is executed as text (a locked-down
+# host with a Group Policy execution policy, see install.bat), so fall back to
+# the directory install.bat passes in PAI_SCRIPT_DIR.
+$ScriptDir  = if ($MyInvocation.MyCommand.Path) {
+    Split-Path -Parent $MyInvocation.MyCommand.Path
+} elseif ($env:PAI_SCRIPT_DIR) {
+    $env:PAI_SCRIPT_DIR.TrimEnd('\')
+} else {
+    (Get-Location).Path
+}
 $UsbRoot    = Split-Path -Parent $ScriptDir
 $SharedDir  = Join-Path $UsbRoot 'Shared'
 $BinDir     = Join-Path $SharedDir 'bin'

@@ -146,7 +146,8 @@ All apps are Capacitor-based (React + TypeScript) and can be side-loaded on any 
 | A download stops halfway | Just run `install.bat` again. Partial files resume (`curl -C -`) and finished ones are skipped. |
 | `start-agent.bat` says **Ollama Engine Not Found** | The engine step did not complete. Re-run `install.bat` (it retries only what failed). |
 | Import fails during setup | See the log written to `Shared\logs\install-<timestamp>.log`, then re-run `install.bat`. |
-| PowerShell blocks the script | `install.bat` already passes `-ExecutionPolicy Bypass`; run it from `cmd` with `Windows\install.bat -SkipModels` to isolate the failing step. |
+| PowerShell blocks the script | `-ExecutionPolicy Bypass` cannot override a policy pinned by Group Policy, so `install.bat` now probes first: if `.ps1` files are refused it says so and runs the installer anyway (script fed as text). If you still hit it, run once in PowerShell: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. |
+| `install.bat` exits immediately, prints only *"and run install.bat again"* | Was a batch-parsing bug: the parentheses inside an `echo` closed the `if` block early, so the script quit with code 1 before calling PowerShell, whatever the execution policy. Fixed — update `Windows\install.bat`. |
 
 Requirements on the host PC: Windows 10/11 with `curl.exe` (built in since 1803) and
 about 4 GB free beyond the models (portable Python ~11 MB, engine ~2 GB after extraction).
